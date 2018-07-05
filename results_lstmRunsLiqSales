@@ -1,0 +1,7 @@
+#Set Global Variables
+lr=.0005
+loss='mean_squared_error'
+epochs=50
+batch_size=20
+topStores = 3
+Result:

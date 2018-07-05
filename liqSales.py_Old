@@ -1,0 +1,375 @@
+#Load the dataset file
+import sys
+import types
+import pandas as pd
+from pandas import DataFrame
+from pandas import concat
+from datetime import timedelta
+
+#IBM DSX specific file I/O client libraries
+#from botocore.client import Config
+#import ibm_boto3
+
+def __iter__(self): return 0
+###########---- ibm dsx specific code to load file ----------###########################
+## Loads the large 13MM record file
+## The following code accesses a file in your IBM Cloud Object Storage. It includes your credentials.
+## You might want to remove those credentials before you share your notebook.
+#client_e0d982f9f7984059b4c6b128d1814552 = ibm_boto3.client(service_name='s3',
+#ibm_api_key_id='PkAbaFpfA7qkLJYNcF1OasbQWapxuH6P-vycQqiofFvK',
+#ibm_auth_endpoint="https://iam.ng.bluemix.net/oidc/token",
+#config=Config(signature_version='oauth'),
+#endpoint_url='https://s3-api.us-geo.objectstorage.service.networklayer.com')
+
+#body = client_e0d982f9f7984059b4c6b128d1814552.get_object(Bucket='cnn-donotdelete-pr-4iz30eoowmkw91',Key='Iowa_Liquor_Sales.csv')['Body']
+## add missing __iter__ method, so pandas accepts body as file-like object
+#if not hasattr(body, "__iter__"): body.__iter__ = types.MethodType( __iter__, body )
+
+##insert credentials for file - Change to credentials_1
+## @hidden_cell
+## The following code contains the credentials for a file in your IBM Cloud Object Storage.
+## You might want to remove those credentials before you share your notebook.
+#credentials_1 = {
+#    'IBM_API_KEY_ID': 'PkAbaFpfA7qkLJYNcF1OasbQWapxuH6P-vycQqiofFvK',
+#    'IAM_SERVICE_ID': 'iam-ServiceId-a42a0a9d-b15f-482d-8ad4-7f333af35771',
+#    'ENDPOINT': 'https://s3-api.us-geo.objectstorage.service.networklayer.com',
+#    'IBM_AUTH_ENDPOINT': 'https://iam.ng.bluemix.net/oidc/token',
+#    'BUCKET': 'cnn-donotdelete-pr-4iz30eoowmkw91',
+#    'FILE': 'liqSales.csv'
+#}
+## @hidden_cell
+## The following code contains the credentials for a file in your IBM Cloud Object Storage.
+## You might want to remove those credentials before you share your notebook.
+## Make sure this uses the variable above. The number will vary in the inserted code.
+#try:
+#    credentials = credentials_1
+#except NameError as e:
+#    print('Error: Setup is incorrect or incomplete.\n')
+#    print('Follow the instructions to insert the file credentials above, and edit to')
+#    print('make the generated credentials_# variable match the variable used here.')
+#    raise
+#
+## reference using String
+#cols = ['Date', 'Category Name', 'Item Description', 'Sale (Dollars)', 'Volume Sold (Liters)']
+#df = pd.read_csv(body, usecols=cols)
+###########---- ibm dsx specific code ----------###########################
+
+##--- local methods to load file w/ 13MM records ---#
+#fileLoc = "../data/Iowa_Liquor_Sales.csv"
+#dfs = pd.read_csv(fileLoc)
+##--- local methods to load file ---#
+    
+ 
+    
+#df.head()
+#count rows and slice into smaller chunk
+#df['Date'].count()
+#df.dtypes
+
+
+# In[7]:
+
+
+# Loading the shortened file into panda dataframe
+fileLoc = "../data/All_hyVee.csv"
+dfs = pd.read_csv(fileLoc, nrows=10000)
+
+#dfs.index
+#list(dfs)
+
+#Rename Fields to simplify using the df
+print("Renaming Fields ---------")
+dfs.rename(columns={'Date': 'date'}, inplace=True)
+dfs.rename(columns={'Store Name': 'storeName'}, inplace=True)
+dfs.rename(columns={'Zip Code': 'zip'}, inplace=True)
+dfs.rename(columns={'Store Location': 'storeLocation'}, inplace=True)
+dfs.rename(columns={'Category Name': 'categoryName'}, inplace=True)
+dfs.rename(columns={'Vendor Name': 'vendorName'}, inplace=True)
+dfs.rename(columns={'Item Description': 'item'}, inplace=True)
+dfs.rename(columns={'Bottle Volume (ml)': 'bottleVol'}, inplace=True)
+dfs.rename(columns={'State Bottle Cost': 'bottleCost'}, inplace=True)
+dfs.rename(columns={'State Bottle Retail': 'bottleSalePrice'}, inplace=True)
+dfs.rename(columns={'Sale (Dollars)': 'txAmount'}, inplace=True)
+dfs.rename(columns={'Bottles Sold': 'txNumBottleSold'}, inplace=True)
+dfs.rename(columns={'Volume Sold (Liters)': 'txVolLtrs'}, inplace=True)
+dfs.rename(columns={'Volume Sold (Gallons)': 'txVolGal'}, inplace=True)
+#list(dfs)
+
+#Currently Sales is a text, convert it to float
+#Also convert all other numerics to float for supporting future transactions
+print("Transform Fields1 ---------")
+dfs['txAmount'] = dfs['txAmount'].str.replace('$', '')
+dfs['txAmount'] = dfs['txAmount'].astype(float)
+dfs['Pack'] = dfs['Pack'].astype(float)
+dfs['bottleVol'] = dfs['bottleVol'].astype(float)
+dfs['bottleCost'] = dfs['bottleCost'].str.replace('$', '')
+dfs['bottleCost'] = dfs['bottleCost'].astype(float)
+dfs['bottleSalePrice'] = dfs['bottleSalePrice'].str.replace('$', '')
+dfs['bottleSalePrice'] = dfs['bottleSalePrice'].astype(float)
+dfs['txNumBottleSold'] = dfs['txNumBottleSold'].astype(float)
+dfs['txVolLtrs'] = dfs['txVolLtrs'].astype(float)
+
+#df_short.head()
+
+#Convert date field to panda date/time
+dfs['date'] = pd.to_datetime(dfs['date'])
+
+#Insert columns to indicate day
+dfs['day'] = dfs['date'].dt.day
+
+#Insert columns to indicate year
+dfs['year'] = dfs['date'].dt.year
+
+#Insert columns to indicate Month
+dfs['month'] = dfs['date'].dt.month
+
+#Insert columns to indicate dayofweek
+dfs['dayofweek'] = dfs['date'].dt.dayofweek
+
+#Insert columns to indicate weekofyear
+dfs['weekofyear'] = dfs['date'].dt.week
+
+
+#Extract the latitude and longitude from storeLocation
+#(?<=\().*?(?=\)) looks for everything between () in 1013 MAIN\nKEOKUK 52632\n(40.39978, -91.387531)
+#Then it breaks into individual lat/long using , delimiter
+print("Extracting GeoData ---------")
+dfs['latlong'] = dfs['storeLocation'].str.extract('((?<=\().*?(?=\)))', expand=True)
+dfs[['lat','long']]  = dfs['latlong'].str.split(',', expand=True)
+
+#Convert lat/long to floats
+dfs['lat'] = dfs['lat'].astype(float)
+dfs['long'] = dfs['long'].astype(float)
+#dfs['lat']
+
+print("Calculating Daily Profit ---------")
+#function to calculate profitability
+def calcProfit(txAmount, bottleCost, txNumBottleSold):
+    return txAmount - (bottleCost * txNumBottleSold)
+
+#Calculate the profit per day, based on (txAmount - (bottleCost*txNumBottleSold))
+dfs['dailyProfit'] = dfs.eval('txAmount - (bottleCost * txNumBottleSold)').fillna(0)
+dfs['dailyProfit'] = dfs['dailyProfit'].astype(int)
+
+#Debut Print
+print(dfs[:10])
+
+
+#Transform data to help with minimizing input features
+print("Transform dataframe to monthly ---------")
+import numpy as np
+
+#Group by storename and month, to get aggregate profitability
+#dfsGB = dfsModel.groupby(['storeName'], as_index=False)
+#dfsGB = dfsModel.groupby(['storeName', 'year', 'month']).agg({'dailyProfit': 'sum'})
+dfsModel = dfs.groupby(['latlong', 'month', 'year'], as_index=False).agg({'dailyProfit': np.sum})
+dfsModel.rename(columns={'dailyProfit': 'monthlyProfit'}, inplace=True)
+
+#pieces = {'storeName': dfsGB, 'year': dfsGB, 'month': dfsGB}
+#dfsGB['snYYMM'] = pd.concat([dfsGB['storeName'], dfsGB['year'], dfsGB['month']], axis=1)
+#dfsGB['snYYMM'] = pd.concat(pieces, axis=0)
+#dfsModel['snYYMM']=dfsModel['storeName'].astype(str)+'_'+dfsModel['year'].astype(str)+'_'+dfsModel['month'].astype(str)
+#dfsGB = dfsModel[['snYYMM', 'dailyProfit']]
+
+
+#Get all top mm profit storeNames for which we will filter on dfsModel
+#dfsTopMMP = dfsModel.loc[dfsModel['monthlyProfit']>0].drop(['year','month','monthlyProfit'], axis=1)
+
+#Filter down dfsModel to top profit stores
+#dfsModel = dfsModel[dfsModel['latlong'].isin(dfsTopMMP['latlong'].values)]
+#dfsModel[:-5]
+dfsModel = dfsModel[['monthlyProfit', 'latlong', 'month', 'year']]
+dfsModel = dfsModel.fillna(method='pad')
+
+#Finalize teh strcuture of dfsModel for learning
+#dfsModel['yymm']=dfsModel['year'].astype(str)+'-'+dfsModel['month'].astype(str)
+#dfsModel['snYYMM']=dfsModel['latlong'].astype(str)+'_'+dfsModel['year'].astype(str)+'_'+dfsModel['month'].astype(str)
+#dfsModel = dfsModel.drop(['year','month','latlong'], axis=1)
+#dfsModel.sort_values(by=['monthlyProfit'], inplace=True, ascending=True)
+
+#Debug prints
+#dfsTopMMP['latlong'].values
+print(dfsModel[:5])
+#list(dfsModel)
+#dfsModel['latlong'].count()
+#dfsTopMMP['latlong'].count()
+
+
+# In[182]:
+
+
+# Create the blank plot
+#p = figure(plot_height = 600, plot_width = 600, 
+#           title = 'Distribution of Sales',
+#          x_axis_label = 'Transaction Amount', 
+#           y_axis_label = 'Number Of Transactions') 
+#
+## Add a quad glyph
+#p.quad(bottom=0, top=dfSale['NumTxs'], 
+#       left=dfSale['left'], right=dfSale['right'], 
+#       fill_color='#E83151', line_color='#DBD4D3')
+#
+## Show the plot
+#show(p)
+
+#generate the final encoded, transformed, shifted and inferred ready df
+print("Encode Data ---------")
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+encoder = LabelEncoder()
+
+#lets build dfTransform, class that allows to fit and transform
+#selected label columns
+class MultiColumnLabelEncoder:
+    def __init__(self,columns = None):
+        self.columns = columns # array of column names to encode
+
+    def fit(self,X,y=None):
+        return self # not relevant here
+    
+    def transform(self,X):
+        '''
+        Transforms columns of X specified in self.columns using
+        LabelEncoder(). If no columns specified, transforms all
+        columns in X.
+        '''
+        output = X.copy()
+        if self.columns is not None:
+            for col in self.columns:
+                output[col] = encoder.fit_transform(output[col])
+        else:
+            for colname,col in output.iteritems():
+                output[colname] = encoder.fit_transform(col)
+        return output
+
+    def fit_transform(self,X,y=None):
+        return self.fit(X,y).transform(X)
+
+#Fit and Transform the label columns
+#dfsModel = MultiColumnLabelEncoder(columns = ['latlong']).fit_transform(dfsModel)
+dfsModel = MultiColumnLabelEncoder(columns = ['latlong']).fit_transform(dfsModel)
+
+#Generate OneHotEncoded for all category sets
+#dfOHE = pd.get_dummies(dfsModel[['storeName','item']], prefix=['sN', 'itm'])
+#dfOHE = pd.get_dummies(dfsModel[['yymm']], prefix=['yM'])
+#Concat the main dfTItem with OHE df
+#dfsModel = pd.concat([dfsModel, dfOHE], axis=1)
+#dfTransform[:10]
+#list(dfsModel)
+
+# convert series to supervised learning
+def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
+    n_vars = 1 if type(data) is list else data.shape[1]
+    df = DataFrame(data)
+    cols, names = list(), list()
+    # input sequence (t-n, ... t-1)
+    for i in range(n_in, 0, -1):
+        cols.append(df.shift(i))
+        names += [('var%d(t-%d)' % (j+1, i)) for j in range(n_vars)]
+    # forecast sequence (t, t+1, ... t+n)
+    for i in range(0, n_out):
+        cols.append(df.shift(-i))
+        if i == 0:
+            names += [('var%d(t)' % (j+1)) for j in range(n_vars)]
+        else:
+            names += [('var%d(t+%d)' % (j+1, i)) for j in range(n_vars)]
+    # put it all together
+    agg = concat(cols, axis=1)
+    agg.columns = names
+    # drop rows with NaN values
+    if dropnan:
+        agg.dropna(inplace=True)
+    return agg
+ 
+# load dataset
+values = dfsModel.values
+
+#print debug values
+print("*** debug printing - values ***")
+print(values[:10])
+
+# ensure all data is float
+values = values.astype('float32')
+# normalize features
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled = scaler.fit_transform(values)
+# frame as supervised learning
+# currently framing 'monthlyProfit', 'latlong', 'month', 'year'
+reframed = series_to_supervised(scaled, 1, 1)
+# drop columns we don't want to predict
+#reframed.drop(reframed.columns[[9,10,11,12,13,14,15]], axis=1, inplace=True)
+print(reframed.head())
+print(list(reframed))
+
+#Getting set for training
+print("Get data training ready ---------")
+#trainTillDate = dfsModel.date.min() + timedelta(days=1000)
+trainTill = int(.75*reframed['var1(t-1)'].count())
+trainSet = dfsModel[ : trainTill]
+testSet = dfsModel[trainTill+1 : ]
+#trainSet = dfsModel.loc[dfsModel['date'] < trainTillDate]
+#testSet = dfsModel.loc[dfsModel['date'] >= trainTillDate]
+
+#Remove header and split by inputs (dailyProfit) and output (rest)
+trainSet = trainSet.values
+testSet = testSet.values
+train_X, train_y = trainSet[:, 1:], trainSet[:, :1]
+test_X, test_y = testSet[:, 1:], testSet[:, :1]
+
+#reshape input to be 3D [samples, timesteps, features]
+train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
+test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
+print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
+##train_y[5:10]
+##train_X[0:10]
+
+#Build the LSTM model
+from math import sqrt
+from numpy import concatenate
+from matplotlib import pyplot
+from pandas import read_csv
+from pandas import DataFrame
+from pandas import concat
+import keras
+from keras import backend as K
+from keras.models import Sequential
+from keras.layers import Activation, LSTM
+from keras.layers.core import Dense
+from keras.optimizers import Adam
+from keras.metrics import categorical_crossentropy
+
+
+# Traditional LSTM
+model = Sequential()
+model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
+model.add(Dense(1))
+model.compile(Adam(lr=.0005), loss='mean_squared_error', metrics=['accuracy'])
+# fit network
+history = model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), verbose=2, shuffle=False)
+
+
+
+# plot history
+pyplot.plot(history.history['loss'], label='train')
+pyplot.plot(history.history['val_loss'], label='test')
+pyplot.legend()
+pyplot.show()
+# 
+## make a prediction
+##yhat = model.predict(test_X)
+##test_X = test_X.reshape((test_X.shape[0], test_X.shape[2]))
+### invert scaling for forecast
+##inv_yhat = concatenate((yhat, test_X[:, 1:]), axis=1)
+##inv_yhat = scaler.inverse_transform(inv_yhat)
+##inv_yhat = inv_yhat[:,0]
+### invert scaling for actual
+##test_y = test_y.reshape((len(test_y), 1))
+##inv_y = concatenate((test_y, test_X[:, 1:]), axis=1)
+##inv_y = scaler.inverse_transform(inv_y)
+##inv_y = inv_y[:,0]
+### calculate RMSE
+##rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
+##print('Test RMSE: %.3f' % rmse)
+#
+#
